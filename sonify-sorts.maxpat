@@ -3,14 +3,14 @@
 		"fileversion" : 1,
 		"appversion" : 		{
 			"major" : 8,
-			"minor" : 2,
-			"revision" : 1,
+			"minor" : 1,
+			"revision" : 11,
 			"architecture" : "x64",
 			"modernui" : 1
 		}
 ,
 		"classnamespace" : "box",
-		"rect" : [ 632.0, 87.0, 900.0, 999.0 ],
+		"rect" : [ 34.0, 87.0, 828.0, 999.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 0,
 		"default_fontsize" : 12.0,
@@ -101,7 +101,6 @@
 					"extract" : 1,
 					"id" : "obj-52",
 					"lockeddragscroll" : 0,
-					"lockedsize" : 0,
 					"maxclass" : "bpatcher",
 					"name" : "bp.FM.maxpat",
 					"numinlets" : 2,
@@ -126,7 +125,6 @@
 					"extract" : 1,
 					"id" : "obj-51",
 					"lockeddragscroll" : 0,
-					"lockedsize" : 0,
 					"maxclass" : "bpatcher",
 					"name" : "bp.FM.maxpat",
 					"numinlets" : 2,
@@ -151,7 +149,6 @@
 					"extract" : 1,
 					"id" : "obj-50",
 					"lockeddragscroll" : 0,
-					"lockedsize" : 0,
 					"maxclass" : "bpatcher",
 					"name" : "bp.FM.maxpat",
 					"numinlets" : 2,
@@ -176,7 +173,6 @@
 					"extract" : 1,
 					"id" : "obj-49",
 					"lockeddragscroll" : 0,
-					"lockedsize" : 0,
 					"maxclass" : "bpatcher",
 					"name" : "bp.Pitch to CV.maxpat",
 					"numinlets" : 1,
@@ -201,7 +197,6 @@
 					"extract" : 1,
 					"id" : "obj-48",
 					"lockeddragscroll" : 0,
-					"lockedsize" : 0,
 					"maxclass" : "bpatcher",
 					"name" : "bp.Pitch to CV.maxpat",
 					"numinlets" : 1,
@@ -226,7 +221,6 @@
 					"extract" : 1,
 					"id" : "obj-44",
 					"lockeddragscroll" : 0,
-					"lockedsize" : 0,
 					"maxclass" : "bpatcher",
 					"name" : "bp.Pitch to CV.maxpat",
 					"numinlets" : 1,
@@ -1063,12 +1057,13 @@
 				"box" : 				{
 					"fontsize" : 12.0,
 					"id" : "obj-25",
+					"linecount" : 3,
 					"maxclass" : "message",
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 240.71505606174469, 321.636454896926921, 636.0, 22.0 ],
-					"text" : "98 55 106 11 58 19 87 66 3 36 75 36 66 73 3 28 46 37 72 55 6 74 48 24"
+					"patching_rect" : [ 240.71505606174469, 321.636454896926921, 636.0, 49.0 ],
+					"text" : "69 124 25 60 33 78 6 70 126 14 88 67 114 83 92 57 45 37 37 85 42 81 73 115 29 32 83 15 62 3 121 2 40 75 95 92 119 29 119 23 63 43 56 100 67 79 43 31 116 99 86 125 63 47 32 15 111 98 100 35 55 60 104 98 81 93 15 64 79 5 34 2 48 49 123 72 51 55 16 30 52 95 8 67 104 112 119 108 65 24 6 95 26 88 29 50 24 62 27 65"
 				}
 
 			}
@@ -1155,7 +1150,7 @@
 					"setminmax" : [ 0.0, 127.0 ],
 					"setstyle" : 1,
 					"settype" : 0,
-					"size" : 24,
+					"size" : 100,
 					"style" : "chiba",
 					"thickness" : 5,
 					"varname" : "multislider[2]"
@@ -1186,7 +1181,7 @@
 					"outlettype" : [ "", "", "", "", "", "", "" ],
 					"patching_rect" : [ 97.71505606174469, 686.457340002059937, 467.0, 22.0 ],
 					"saved_object_attributes" : 					{
-						"filename" : "sort.js",
+						"filename" : "sort",
 						"parameter_enable" : 0
 					}
 ,
