@@ -5,16 +5,21 @@
  * notes: Comments below are not following the JSDoc style. This is
  * just JSDoc-like hints for helping you figure out the behaviour
  * of Max [JS] object.
+ * @typedef {Array<Number>} Sequence
+ * @typedef {Array<Number>} MidiNotes
+ * @typedef {Number} Access
+ * @typedef {Array<Number>} Swap the first element is 0
+ * @typedef {Array<Number>} Insert the first element is 1
  *
  * @inlet0 {list{int}} set sequence to sort
  * @inlet0 {bang} move forward the sorting step
  * @inlet0 {message "set"} set the sort algorithm to use
  * @inlet0 {message "dump"} outlet the history of steps of sorting
- * @inlet1 - reserved inlet
- * @outlet0 @type {Array<Number>} sorted sequence
- * @outlet1 @type {Array<Number>} moving and adjacent values
- * @outlet2 @type {Array<Array<Number>} dump of sequences of sorting steps
- * @outlet3 @type {Array<Array<Number>} dump of moving values of sorting steps
+ * @inlet1 reserved inlet
+ * @outlet0 @type {Sequence} sorted sequence
+ * @outlet1 @type {MidiNotes} moved/accessed and adjacent values
+ * @outlet2 @type {Sequence} indicate accesed index
+ * @outlet3 @type {Array<Insert|Swap|Access>} dump of moving values of sorting steps
  * @outlet4 @type {string} log message
  * @outlet5 reserved outlet
  * @outlet6 @type {string} bangs when the sorting animation
@@ -23,29 +28,79 @@
 inlets = 2;
 outlets = 7;
 
-availableAlgorithms = ["bubble", "selection", "insertion", "quick"];
-if (jsarguments.length > 1) myval = jsarguments[1];
+if (jsarguments.length > 1) myval = jsarguments[1]; // get the arg
 
-var bangCount = 0;
-var array = Array();
-var arrayHistory = Array();
-var pointerHistory = Array();
+var isDebug = false;
+var availableAlgorithms = [
+  "bubble",
+  "selection",
+  "insertion",
+  "quick",
+  "merge",
+];
 var selectedAlgorithm = "bubble";
+
+/**
+ * @type {Number}
+ */
+var bangCount = 0;
+/**
+ * @type {Sequence}
+ */
+var inputArray = Array();
+/**
+ * @type {Sequence}
+ */
+var playSequence = Array();
+/**
+ * @type {Sequence}
+ */
+var pointerSequence = Array();
+/**
+ * @type {Array<Swap|Access}>} array of indices
+ */
+var stepHistory = Array();
+
+function debug_log(msg) {
+  if (isDebug) {
+    post("DEBUG:", msg, "\n");
+  }
+}
+
+function isInteger(num) {
+  return (num ^ 0) === num;
+}
+
+function insert(array, i, j, saveHistory) {
+  array[i] = array[j];
+  if (saveHistory) {
+    stepHistory.push([1, i, j]);
+  }
+}
+
+function insertValue(array, i, value, saveHistory) {
+  array[i] = value;
+  if (saveHistory) {
+    stepHistory.push([2, i, value]);
+  }
+}
+
+function swap(array, i, j, saveHistory) {
+  tmp = array[i];
+  array[i] = array[j];
+  array[j] = tmp;
+  if (saveHistory) {
+    stepHistory.push([0, i, j]);
+  }
+}
 
 function bubbleSort(array) {
   for (var i = 0; i < array.length; i++) {
     for (var j = array.length; i < j; j--) {
-      pointerHistory.push([
-        array[Math.max(0, j - 1)],
-        array[j],
-        array[Math.min(array.length - 1, j + 1)],
-      ]);
       if (array[j] < array[j - 1]) {
-        var tmp = array[j - 1];
-        array[j - 1] = array[j];
-        array[j] = tmp;
+        swap(array, j - 1, j, true);
+        // stepHistory.push([0, j - 1, j]);
       }
-      arrayHistory.push(array.slice());
     }
   }
 }
@@ -58,111 +113,150 @@ function selection_sort(array) {
       if (min > array[j]) {
         min = array[j];
         k = j;
-        pointerHistory.push([
-          array[Math.max(0, j - 1)],
-          array[j],
-          array[Math.min(array.length - 1, j + 1)],
-        ]);
-        arrayHistory.push(array.slice());
       }
+      stepHistory.push(j);
     }
-    var tmp = array[i];
-    array[i] = array[k];
-    array[k] = tmp;
-  }
-}
-
-function quickSort(startIdx, endIdx) {
-  //minからmaxの範囲からrandomな数を選ぶ関数
-  function getRandomArbitrary(min, max) {
-    return Math.floor(Math.random() * (max - min) + min);
-  }
-  var randomInt = getRandomArbitrary(startIdx, endIdx);
-  //ピボットをランダムな数に指定
-  var pivot = array[randomInt];
-  //引数を左端、右端として変数にいれる
-  var left = startIdx;
-  var right = endIdx;
-
-  //ピポットより小さい値を左側へ、大きい値を右側へ分割する
-  while (true) {
-    //leftの値がpivotより小さければleftを一つ右へ移動する
-    while (array[left] < pivot) {
-      left++;
-    }
-    //rightの値がpivotより小さければrightを一つ左へ移動する
-    while (pivot < array[right]) {
-      right--;
-    }
-    //leftとrightの値が同じだったら、そこでグループ分けの処理を止める。
-    //rightとrightの値が同じになっていない場合、つまりグループが左右逆になっている場合、leftとrightを交換
-    //交換後にleftを後ろへ、rightを前へ一つ移動する
-    if (right <= left) {
-      break;
-    } else {
-      var tmp = array[left];
-      array[left] = array[right];
-      array[right] = tmp;
-      left++;
-      right--;
-      pointerHistory.push([array[left], array[right]]);
-      arrayHistory.push(array.slice());
-    }
-  }
-
-  //左側に分割Sるデータがある場合、quick_sort関数を呼び出す。
-  if (startIdx < left - 1) {
-    quickSort(startIdx, left - 1);
-  }
-  //右側に分割Sるデータがある場合、quick_sort関数を呼び出す。
-  if (right + 1 < endIdx) {
-    quickSort(right + 1, endIdx);
+    swap(array, i, k, true);
   }
 }
 
 function insertionSort(array) {
   for (var i = 1; i < array.length; i++) {
-    var j;
-    //挿入する値をいったん変数に保存
     var tmp = array[i];
-    //整列ずみのどの部分に挿入するか、整列済みの分だけ整列済みの大きい方から順にループ
-    for (j = i - 1; j >= 0; j--) {
-      //挿入する変数tmpが、整列済みの変数array[j]より大きい場合、そのままループから抜け出すbreak
-      if (tmp > array[j]) {
-        break;
-      } else {
-        //挿入する変数tmpが整列済みの変数array[j]より小さい場合、array[j]の添字が一個増えたところにarray[j]の値を保存。
+    for (var j = i - 1; j >= 0; j--) {
+      stepHistory.push(j);
+      if (array[j] > tmp) {
         array[j + 1] = array[j];
+        insert(array, j + 1, j, true);
+      } else {
+        break;
       }
-      arrayHistory.push(array.slice());
-      pointerHistory.push([
-        array[Math.max(0, j - 1)],
-        array[j],
-        array[Math.min(array.length - 1, j + 1)],
-      ]);
     }
-    //breakした場合、挿入する値はarray[j+1]に
-    array[j + 1] = tmp;
+    insertValue(array, j + 1, tmp, true);
+  }
+}
+
+function quickSort(array, startID, endID) {
+  var pivot = array[Math.floor((startID + endID) / 2)];
+  var left = startID;
+  var right = endID;
+  while (true) {
+    while (array[left] < pivot) {
+      left++;
+    }
+    while (pivot < array[right]) {
+      right--;
+    }
+    if (right <= left) {
+      break;
+    }
+    var tmp = array[left];
+    swap(array, left, right, true);
+    insertValue(array, right, tmp, true);
+    left++;
+    right--;
+  }
+  if (startID < left - 1) {
+    quickSort(array, startID, left - 1);
+  }
+  if (right + 1 < endID) {
+    quickSort(array, right + 1, endID);
+  }
+}
+
+function mergeSort(array, start, end) {
+  if (start + 1 == end) {
+    stepHistory.push(start);
+  } else {
+    var mid = Math.floor((start + end) / 2);
+    mergeSort(array, start, mid);
+    mergeSort(array, mid, end);
+    var temp = new Array();
+    var lt = start;
+    var rt = mid; 
+    for (i = 0; i < end - start; i++) {
+      var w;
+      if (lt >= mid) {
+        w = array[rt];
+        stepHistory.push(rt);
+        rt++;
+      } else if (rt >= end) {
+        w = array[lt];
+        stepHistory.push(lt);
+        lt++;
+      } else if (array[lt] > array[rt]) {
+        w = array[lt];
+        stepHistory.push(lt);
+        lt++;
+      } else {
+        w = array[rt];
+        stepHistory.push(rt);
+        rt++;
+      }
+      temp[i] = w;
+    }
+    for (var i = 0; i < end - start; i++) {
+      insertValue(array, start + i, temp[i], true);
+    }
   }
 }
 
 /**
  * increment the step of sorting
  */
-function bang() {
-  outlet(0, arrayHistory[bangCount]);
-  outlet(1, pointerHistory[bangCount]);
-  bangCount++;
 
-  if (bangCount == arrayHistory.length - 1) {
+function bang() {
+  // start animation
+  if (bangCount === 0) {
+    playSequence = inputArray.slice();
+  }
+  // finish animation
+  if (bangCount === stepHistory.length) {
     outlet(6, "bang");
     bangCount = 0;
+    return;
   }
+  // check the history data
+  var operationOrAccess = stepHistory[bangCount];
+  if (!isInteger(operationOrAccess)) {  // operation 
+    switch (operationOrAccess[0]) {
+      case 0:
+        swap(playSequence, operationOrAccess[1], operationOrAccess[2], false);
+        break;
+      case 1:
+        insert(playSequence, operationOrAccess[1], operationOrAccess[2], false);
+        break;
+      case 2:
+        insertValue(
+          playSequence,
+          operationOrAccess[1],
+          operationOrAccess[2],
+          false
+        );
+        break;
+      default:
+        break;
+    }
+    operationOrAccess = operationOrAccess[1]; // Swap|Insert -> index
+  }
+
+  outlet(1, [
+    playSequence[Math.max(0, operationOrAccess - 1)],
+    playSequence[operationOrAccess],
+    playSequence[Math.min(playSequence.length - 1, operationOrAccess + 1)],
+  ]);
+
+  outlet(0, playSequence);
+
+  pointerSequence[operationOrAccess] = playSequence[operationOrAccess];
+  outlet(2, pointerSequence);
+  pointerSequence[operationOrAccess] = 0;
+
+  bangCount++;
 }
 
 function dump() {
-  outlet(2, arrayHistory);
-  outlet(3, pointerHistory);
+  outlet(2, stepHistory);
 }
 
 function set() {
@@ -175,48 +269,62 @@ function set() {
   }
 }
 
-function initStoredHistories() {
-  arrayHistory = Array();
-  pointerHistory = Array();
+function init() {
+  pointerSequence = Array();
+  for (var i = 0; i < inputArray.length; i++) {
+    pointerSequence.push(0);
+  }
+  stepHistory = Array();
   bangCount = 0;
 }
 
 function list() {
-  array = arrayfromargs(arguments);
-  initStoredHistories();
-  outlet(0, array);
+  inputArray = arrayfromargs(arguments);
+  init();
+  outlet(0, inputArray);
+  outlet(2, pointerSequence);
 }
 
 function sort() {
+  playSequence = inputArray.slice();
   outlet(4, "set Now Sorting...");
   post("Now sorting with", alg, "\n");
 
-  if (array.length === 0) {
+  // for re-run sorting
+  init();
+  outlet(0, inputArray);
+  outlet(2, pointerSequence);
+
+  if (inputArray.length === 0) {
     post("set the sequence list to sort in first inlet\n");
-  } else if (arrayHistory.length !== 0){
-    array = arrayHistory[0];
-    initStoredHistories();
   }
   if (selectedAlgorithm === "bubble") {
-    bubbleSort(array);
+    bubbleSort(playSequence);
   }
   if (selectedAlgorithm === "selection") {
-    selection_sort(array);
+    selection_sort(playSequence);
   }
   if (selectedAlgorithm === "quick") {
-    quickSort(array);
+    quickSort(playSequence, 0, playSequence.length - 1);
   }
   if (selectedAlgorithm === "insertion") {
-    insertionSort(array);
+    insertionSort(playSequence);
   }
-  if (selectedAlgorithm === "quick") {
-    quickSort(array);
+  if (selectedAlgorithm === "merge") {
+    mergeSort(playSequence, 0, playSequence.length - 1);
   }
-  if (selectedAlgorithm === "quick") {
-    quickSort(array);
-  }
-  post("Done! in ", pointerHistory.length, " steps\n");
+  post("Done! in ", stepHistory.length, " steps\n");
   outlet(4, "set");
+}
+
+function debugMode() {
+  var flag = Number(arrayfromargs(arguments));
+  if (flag === 0) {
+    isDebug = false;
+  } else {
+    isDebug = true;
+    debug_log("debug mode set");
+  }
 }
 
 function msg_int(v) {
